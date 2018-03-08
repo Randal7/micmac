@@ -153,6 +153,7 @@ class cAppliMalt
           int         mVSNI;
           int         mNbDirPrgD;
           bool        mPrgDReInject;
+          bool        mSpatial;
 };
 
 
@@ -244,7 +245,8 @@ cAppliMalt::cAppliMalt(int argc,char ** argv) :
     mMaxFlow       (false),
     mSzRec         (50),
     mNbDirPrgD     (7),
-    mPrgDReInject  (false)
+    mPrgDReInject  (false),
+    mSpatial       (false)
 {
 
 #if ELISE_QT
@@ -395,7 +397,8 @@ cAppliMalt::cAppliMalt(int argc,char ** argv) :
                     << EAM(OrthoImSupMNT,"OISM",true,"When true footprint of ortho-image=footprint of DSM")
                     << EAM(aMNTInitIMG,"MNTInitIMG",true,"img of the MNT used to initialise the depth research", eSAM_NoInit)
                     << EAM(aMNTInitXML,"MNTInitXML",true,"xml of the MNT used to initialise the depth research", eSAM_NoInit)
-                );
+                    << EAM(mSpatial,"Spatial",true,"Compute the DTM with spatial optimized parameters")
+            );
 
     if (!MMVisualMode)
     {
@@ -709,6 +712,18 @@ cAppliMalt::cAppliMalt(int argc,char ** argv) :
       // mZoomInit
 
       std::string aFileMM = "MM-Malt.xml";
+
+      if (mSpatial && mType==eGeomImage)
+      {
+          aFileMM="MM-Malt-Spatial.xml";
+          mSzW = 2;
+          mZRegul = 0.12;
+//          mAffineLast = true;
+          mZPas = 1.0;
+          mCostTrans = 4.0;
+          mDefCor = 0.3;
+          mNbMinIV = 2;
+      }
 
       if (0)
       {
@@ -1201,7 +1216,7 @@ cAppliMalt::cAppliMalt(int argc,char ** argv) :
                   +  std::string(" +ResolTerrain=") + ToString(aResolTerrain);
       }
 
-      //Prise en compte d'un MNT initial si celui-ci a été mis en entree
+      //Prise en compte d'un MNT initial si celui-ci a ï¿½tï¿½ mis en entree
       bool MNTInitIsInitXML = EAMIsInit(&aMNTInitXML);
       bool MNTInitIsInitIMG = EAMIsInit(&aMNTInitIMG);
       ELISE_ASSERT((MNTInitIsInitXML==MNTInitIsInitIMG),"MNT d'initialisation : Mettre un xml ET une image en entree");
@@ -1236,6 +1251,8 @@ cAppliMalt::cAppliMalt(int argc,char ** argv) :
       {
           if (mMCorPonc)
             mCom = mCom + " +ModeAgrCor=eAggregIm1Maitre";
+          else if (mSpatial)
+              mCom = mCom + " +ModeAgrCor=eAggregSymetrique";
           else
             mCom = mCom + " +ModeAgrCor=eAggregMoyMedIm1Maitre";
       }
